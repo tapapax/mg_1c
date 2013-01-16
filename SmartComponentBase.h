@@ -13,19 +13,18 @@
 
 using namespace std;
 
-class CBlob {
+class BlobData {
 public:
-	CBlob(string data) : mData(data) {}
+	BlobData(string data) : mData(data) {}
 
 	const string& getData() const { return mData;}
 private:
 	string mData;
 };
 
-class CSmartComponentBase : public IComponentBase {
+class SmartComponentBase : public IComponentBase {
 public:
-#define componentMethod function<void()>
-	//	typedef function<void()> componentMethod;
+	typedef function<void()> componentMethod;
 
 private:
 	class OKReturn {};
@@ -37,7 +36,7 @@ private:
 
 	void packToVariant(const wstring& str, tVariant*);
 	void packToVariant(const string& str, tVariant*);
-	void packToVariant(const CBlob& blob, tVariant*);
+	void packToVariant(const BlobData& blob, tVariant*);
 	void packToVariant(bool value, tVariant*);
 	void packToVariant(int32_t value, tVariant*);
 	void packToVariant(double value, tVariant*);
@@ -46,6 +45,8 @@ private:
 	template <>	wstring extractFromVariant<wstring>(tVariant* var);
 
 	static wstring varToString(tVariant*);
+
+	const wstring mComponentName;
 
 protected:
 	static const int PROP_READABLE = 1;
@@ -71,8 +72,6 @@ protected:
     IAddInDefBase* mConnect;
     IMemoryManager* mMemoryManager;
 
-	wstring mComponentName;
-
 	//void addProperty(wstring englishName, wstring localName, int modes, bool (Derived::*getter)(tVariant*), bool (Derived::*setter)(tVariant*));
 	void addMethod(wstring englishName, wstring localName, long parametersCount, componentMethod method);
 
@@ -80,8 +79,8 @@ protected:
 	template <class ParameterType> ParameterType getParameter(long number);
 
 public:
-	CSmartComponentBase();
-	~CSmartComponentBase();
+	SmartComponentBase(wstring name);
+	~SmartComponentBase();
 
     virtual bool ADDIN_API Init(void*);
     virtual bool ADDIN_API setMemManager(void* mem);
@@ -113,7 +112,7 @@ public:
 };
 
 template <class RetValType>
-void CSmartComponentBase::returnValue(RetValType value) {
+void SmartComponentBase::returnValue(RetValType value) {
 	if (!mReturnValueHandler) return;
 
 	packToVariant(value, mReturnValueHandler);
@@ -122,14 +121,14 @@ void CSmartComponentBase::returnValue(RetValType value) {
 }
 
 template <class ParameterType>
-ParameterType CSmartComponentBase::getParameter(long number) {
+ParameterType SmartComponentBase::getParameter(long number) {
 	if (mParametersHandler == NULL || number > mParametersHandlerSize || number < 1) return ParameterType();
 
 	return extractFromVariant<ParameterType>(mParametersHandler + number - 1);
 }
 
 template <>
-wstring CSmartComponentBase::extractFromVariant<wstring>(tVariant* var) {
+wstring SmartComponentBase::extractFromVariant<wstring>(tVariant* var) {
 	return varToString(var);
 }
 

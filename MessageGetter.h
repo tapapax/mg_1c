@@ -5,12 +5,11 @@
 
 #include "SmartComponentBase.h"
 
-class CMessageGetter : public CSmartComponentBase {
+class CMessageGetter : public SmartComponentBase {
 public:
 	void getMessage();
 
-	CMessageGetter() {
-		mComponentName = L"MessageGetter";
+	CMessageGetter() : SmartComponentBase(L"MessageGetter") {
 		addMethod(L"GetMessage", L"ПолучитьПисьмо", 4, std::bind(&CMessageGetter::getMessage, this));
 	}
 };

@@ -1,27 +1,27 @@
 
 #include "SmartComponentBase.h"
 
-void CSmartComponentBase::packToVariant(double value, tVariant* var) {
+void SmartComponentBase::packToVariant(double value, tVariant* var) {
 	TV_VT(var) = VTYPE_R8;
 	TV_R8(var) = value;
 }
 
-void CSmartComponentBase::packToVariant(int32_t value, tVariant* var) {
+void SmartComponentBase::packToVariant(int32_t value, tVariant* var) {
 	TV_VT(var) = VTYPE_I4;
 	TV_I4(var) = value;
 }
 
-void CSmartComponentBase::packToVariant(bool value, tVariant* var) {
+void SmartComponentBase::packToVariant(bool value, tVariant* var) {
 	TV_VT(var) = VTYPE_BOOL;
 	TV_BOOL(var) = value;
 }
 
-void CSmartComponentBase::packToVariant(const CBlob& blob, tVariant* var){
+void SmartComponentBase::packToVariant(const BlobData& blob, tVariant* var){
 	packToVariant(blob.getData(), var);
 	TV_VT(var) = VTYPE_BLOB;
 }
 
-void CSmartComponentBase::packToVariant(const wstring& str, tVariant* var) {
+void SmartComponentBase::packToVariant(const wstring& str, tVariant* var) {
 	wchar_t* ptr;
 	auto size = (str.size() + 1) * sizeof(wchar_t);
 
@@ -36,7 +36,7 @@ void CSmartComponentBase::packToVariant(const wstring& str, tVariant* var) {
 	var->wstrLen = str.size();
 }
 
-void CSmartComponentBase::packToVariant(const string& str, tVariant* var) {
+void SmartComponentBase::packToVariant(const string& str, tVariant* var) {
 	char* ptr;
 	auto size = (str.size() + 1) * sizeof(char);
 
@@ -51,39 +51,40 @@ void CSmartComponentBase::packToVariant(const string& str, tVariant* var) {
 	var->strLen = str.size();
 }
 
-void CSmartComponentBase::getErrorDescription() {
+void SmartComponentBase::getErrorDescription() {
 	returnValue(mLastErrorDescription);
 }
 //---------------------------------------------------------------------------//
-CSmartComponentBase::CSmartComponentBase()
+SmartComponentBase::SmartComponentBase(wstring name)
 	:
-mMemoryManager(NULL),
+	mMemoryManager(NULL),
 	mConnect(NULL),
 	mReturnValueHandler(NULL),
 	mParametersHandler(NULL),
-	mParametersHandlerSize(0)
+	mParametersHandlerSize(0),
+	mComponentName(name)
 {
-	addMethod(L"ErrorDescription", L"ќписаниеќшибки", 0, bind(&CSmartComponentBase::getErrorDescription, this));
+	addMethod(L"ErrorDescription", L"ќписаниеќшибки", 0, bind(&SmartComponentBase::getErrorDescription, this));
 }
 //---------------------------------------------------------------------------//
-CSmartComponentBase::~CSmartComponentBase() {
+SmartComponentBase::~SmartComponentBase() {
 
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::Init(void* pConnection) { 
+bool SmartComponentBase::Init(void* pConnection) { 
 	mConnect = (IAddInDefBase*)pConnection;
 	return mConnect != NULL;
 }
 //---------------------------------------------------------------------------//
-long CSmartComponentBase::GetInfo() { 
+long SmartComponentBase::GetInfo() { 
 	return 2000; 
 }
 //---------------------------------------------------------------------------//
-void CSmartComponentBase::Done() {
+void SmartComponentBase::Done() {
 
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::RegisterExtensionAs(WCHAR_T** wsExtensionName) { 
+bool SmartComponentBase::RegisterExtensionAs(WCHAR_T** wsExtensionName) { 
 	if (!mMemoryManager) return false;
 	if (!mMemoryManager->AllocMemory((void**)wsExtensionName, (mComponentName.size() + 1) * sizeof(WCHAR_T))) return false;
 
@@ -92,11 +93,11 @@ bool CSmartComponentBase::RegisterExtensionAs(WCHAR_T** wsExtensionName) {
 	return true; 
 }
 //---------------------------------------------------------------------------//
-long CSmartComponentBase::GetNProps() { 
+long SmartComponentBase::GetNProps() { 
 	return mProperties.size();
 }
 //---------------------------------------------------------------------------//
-long CSmartComponentBase::FindProp(const WCHAR_T* wsPropName) { 
+long SmartComponentBase::FindProp(const WCHAR_T* wsPropName) { 
 	for (unsigned long i = 0; i < mProperties.size(); i++) {
 		if (_wcsicmp(mProperties[i].englishName.c_str(), wsPropName) == 0 ||
 			_wcsicmp(mProperties[i].localName.c_str(), wsPropName) == 0) return i;
@@ -105,7 +106,7 @@ long CSmartComponentBase::FindProp(const WCHAR_T* wsPropName) {
 	return -1;
 }
 //---------------------------------------------------------------------------//
-const WCHAR_T* CSmartComponentBase::GetPropName(long lPropNum, long lPropAlias) { 
+const WCHAR_T* SmartComponentBase::GetPropName(long lPropNum, long lPropAlias) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return NULL;
 
 	wstring* name;
@@ -125,7 +126,7 @@ const WCHAR_T* CSmartComponentBase::GetPropName(long lPropNum, long lPropAlias) 
 	return result;
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::GetPropVal(const long lPropNum, tVariant* pvarPropVal) { 
+bool SmartComponentBase::GetPropVal(const long lPropNum, tVariant* pvarPropVal) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
 	auto property = mProperties[lPropNum];
@@ -134,7 +135,7 @@ bool CSmartComponentBase::GetPropVal(const long lPropNum, tVariant* pvarPropVal)
 	//return ((Derived*)this->*property.getter)(pvarPropVal);
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::SetPropVal(const long lPropNum, tVariant *varPropVal) { 
+bool SmartComponentBase::SetPropVal(const long lPropNum, tVariant *varPropVal) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
 	auto property = mProperties[lPropNum];
@@ -143,23 +144,23 @@ bool CSmartComponentBase::SetPropVal(const long lPropNum, tVariant *varPropVal) 
 	//return ((Derived*)this->*property.setter)(varPropVal);
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::IsPropReadable(const long lPropNum) { 
+bool SmartComponentBase::IsPropReadable(const long lPropNum) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
 	return mProperties[lPropNum].modes & PROP_READABLE;
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::IsPropWritable(const long lPropNum) {
+bool SmartComponentBase::IsPropWritable(const long lPropNum) {
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
 	return (mProperties[lPropNum].modes & PROP_WRITEABLE) != 0;
 }
 //---------------------------------------------------------------------------//
-long CSmartComponentBase::GetNMethods() { 
+long SmartComponentBase::GetNMethods() { 
 	return mMethods.size();
 }
 //---------------------------------------------------------------------------//
-long CSmartComponentBase::FindMethod(const WCHAR_T* wsMethodName) { 
+long SmartComponentBase::FindMethod(const WCHAR_T* wsMethodName) { 
 	for (unsigned long i = 0; i < mMethods.size(); i++) {
 		if (_wcsicmp(mMethods[i].englishName.c_str(), wsMethodName) == 0 ||
 			_wcsicmp(mMethods[i].localName.c_str(), wsMethodName) == 0) return i;
@@ -168,7 +169,7 @@ long CSmartComponentBase::FindMethod(const WCHAR_T* wsMethodName) {
 	return -1;
 }
 //---------------------------------------------------------------------------//
-const WCHAR_T* CSmartComponentBase::GetMethodName(const long lMethodNum, const long lMethodAlias) { 
+const WCHAR_T* SmartComponentBase::GetMethodName(const long lMethodNum, const long lMethodAlias) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return NULL;
 
 	wstring* name;
@@ -188,28 +189,28 @@ const WCHAR_T* CSmartComponentBase::GetMethodName(const long lMethodNum, const l
 	return result;
 }
 //---------------------------------------------------------------------------//
-long CSmartComponentBase::GetNParams(const long lMethodNum) { 
+long SmartComponentBase::GetNParams(const long lMethodNum) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return 0;
 
 	return mMethods[lMethodNum].parametersCount;
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::GetParamDefValue(const long lMethodNum, const long lParamNum, tVariant *pvarParamDefValue) { 
+bool SmartComponentBase::GetParamDefValue(const long lMethodNum, const long lParamNum, tVariant *pvarParamDefValue) { 
 	TV_VT(pvarParamDefValue)= VTYPE_EMPTY;
 	return false;
 } 
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::HasRetVal(const long lMethodNum) { 
+bool SmartComponentBase::HasRetVal(const long lMethodNum) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return false;
 
 	return true;
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::CallAsProc(const long lMethodNum, tVariant* paParams, const long lSizeArray) { 
+bool SmartComponentBase::CallAsProc(const long lMethodNum, tVariant* paParams, const long lSizeArray) { 
 	return false;
 }
 //---------------------------------------------------------------------------//
-wstring CSmartComponentBase::varToString(tVariant* Variant) {
+wstring SmartComponentBase::varToString(tVariant* Variant) {
 	if (TV_VT(Variant) == VTYPE_PWSTR) {
 		return wstring(TV_WSTR(Variant));
 	} else if (TV_VT(Variant) == VTYPE_PSTR) {
@@ -221,7 +222,7 @@ wstring CSmartComponentBase::varToString(tVariant* Variant) {
 	return L"";
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray) { 
+bool SmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return false;
 	if (lSizeArray != mMethods[lMethodNum].parametersCount) return false;
 
@@ -253,11 +254,11 @@ bool CSmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetVal
 	return !error;
 }
 //---------------------------------------------------------------------------//
-void CSmartComponentBase::SetLocale(const WCHAR_T* loc) {
+void SmartComponentBase::SetLocale(const WCHAR_T* loc) {
 	_wsetlocale(LC_ALL, loc);
 }
 //---------------------------------------------------------------------------//
-bool CSmartComponentBase::setMemManager(void* mem) {
+bool SmartComponentBase::setMemManager(void* mem) {
 	mMemoryManager = (IMemoryManager*)mem;
 	return mMemoryManager != NULL;
 }
@@ -268,7 +269,7 @@ bool CSmartComponentBase::setMemManager(void* mem) {
 //	mProperties.push_back(prop);
 //}
 //---------------------------------------------------------------------------//
-void CSmartComponentBase::addMethod(wstring englishName, wstring localName, long parametersCount, componentMethod method) {
+void SmartComponentBase::addMethod(wstring englishName, wstring localName, long parametersCount, componentMethod method) {
 	Method meth = { englishName, localName, parametersCount, method };
 	mMethods.push_back(meth);
 }

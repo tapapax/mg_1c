@@ -1,0 +1,7 @@
+*.lib
+*.sdf
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+bin
+x64

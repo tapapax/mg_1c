@@ -1,0 +1,6 @@
+LIBRARY    "MessageGetter"
+
+EXPORTS
+GetClassObject
+DestroyObject
+GetClassNames

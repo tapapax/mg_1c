@@ -136,5 +136,5 @@ void CMessageGetter::getMessage() {
 		throw narrowToWide(e.what());
 	}
 
-	returnValue(CBlob(answer));
+	returnValue(BlobData(answer));
 }
