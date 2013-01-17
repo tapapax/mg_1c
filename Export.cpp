@@ -1,8 +1,7 @@
 
 #include "MessageGetter.h"
 
-long GetClassObject(const WCHAR_T* wsName, IComponentBase** pInterface)
-{
+long GetClassObject(const WCHAR_T* wsName, IComponentBase** pInterface) {
     if(!*pInterface) {
         *pInterface = new CMessageGetter;
         return (long)*pInterface;

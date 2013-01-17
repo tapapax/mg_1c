@@ -1,4 +1,4 @@
-LIBRARY    "MessageGetter"
+LIBRARY    "mg_1c"
 
 EXPORTS
 GetClassObject

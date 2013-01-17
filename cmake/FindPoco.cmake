@@ -41,6 +41,8 @@
 # In Windows, we make the assumption that, if the Poco files are installed, the default directory
 # will be C:\poco or C:\Program Files\Poco or C:\Programme\Poco.
 
+SET(LIBS_SUFFIX mt)
+
 MESSAGE(STATUS "Searching for Poco library...")
 
 SET(POCO_INCLUDE_PATH_DESCRIPTION "top-level directory containing the poco include directories. E.g /usr/local/include/ or c:\\poco\\include\\poco-1.3.2")
@@ -59,47 +61,22 @@ IF(WIN32)
   SET(POCO_DIR_SEARCH
     ${POCO_DIR_SEARCH}
     C:/poco
-    D:/poco
     "C:/Program Files/poco"
-    "C:/Programme/poco"
-    "D:/Program Files/poco"
-    "D:/Programme/poco"
   )
 ENDIF(WIN32)
 
 # Add in some path suffixes. These will have to be updated whenever a new Poco version comes out.
 SET(SUFFIX_FOR_INCLUDE_PATH
- poco-1.3.2
- poco-1.3.3
- poco-1.3.4
- poco-1.3.5
- poco-1.3.6
 )
 
 SET(SUFFIX_FOR_LIBRARY_PATH
- poco-1.3.2/lib
- poco-1.3.2/lib/Linux/i686
- poco-1.3.2/lib/Linux/x86_64
- poco-1.3.3/lib
- poco-1.3.3/lib/Linux/i686
- poco-1.3.3/lib/Linux/x86_64
- poco-1.3.4/lib
- poco-1.3.4/lib/Linux/i686
- poco-1.3.4/lib/Linux/x86_64
- poco-1.3.5/lib
- poco-1.3.5/lib/Linux/i686
- poco-1.3.5/lib/Linux/x86_64
- poco-1.3.6/lib
- poco-1.3.6/lib/Linux/i686
- poco-1.3.6/lib/Linux/x86_64
  lib
- lib/Linux/i686
- lib/Linux/x86_64
 )
 
 #
 # Look for an installation.
 #
+
 FIND_PATH(Poco_INCLUDE_DIR NAMES Foundation/include/Poco/AbstractCache.h PATH_SUFFIXES ${SUFFIX_FOR_INCLUDE_PATH} PATHS
 
 # Look in other places.
@@ -139,7 +116,7 @@ IF(Poco_INCLUDE_DIR)
 
   IF(NOT Poco_LIBRARY_DIR)
 
-    FIND_LIBRARY(Poco_FOUNDATION_LIB NAMES PocoFoundation PocoFoundationd  PATH_SUFFIXES ${SUFFIX_FOR_LIBRARY_PATH} PATHS
+    FIND_LIBRARY(Poco_FOUNDATION_LIB NAMES PocoFoundation${LIBS_SUFFIX} PocoFoundation${LIBS_SUFFIX}d  PATH_SUFFIXES ${SUFFIX_FOR_LIBRARY_PATH} PATHS
 
 # Look in other places.
       ${Poco_INCLUDE_DIR}
@@ -167,11 +144,13 @@ IF(Poco_INCLUDE_DIR)
       ENDIF ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
       SET(Comp_List "Foundation${DBG}")
       FOREACH(COMPONENT ${Poco_FIND_COMPONENTS})
-	FIND_LIBRARY(LIB${COMPONENT} "Poco${COMPONENT}" Poco_LIBRARY_DIR)
-	IF (LIB${COMPONENT})
-	  LIST(APPEND Poco_LIBRARIES "Poco${COMPONENT}${DBG}")
-	  LIST(APPEND Comp_List "${COMPONENT}${DBG}")
-	ENDIF(LIB${COMPONENT})
+		FIND_LIBRARY(LIB${COMPONENT} "Poco${COMPONENT}${LIBS_SUFFIX}" PATHS ${Poco_LIBRARY_DIR})
+		IF (LIB${COMPONENT})
+		  LIST(APPEND Poco_LIBRARIES "Poco${COMPONENT}${LIBS_SUFFIX}${DBG}")
+		  LIST(APPEND Comp_List "${COMPONENT}${DBG}")
+		else()
+			message("no ${COMPONENT}")
+		ENDIF(LIB${COMPONENT})
       ENDFOREACH(COMPONENT)
       LIST(REMOVE_DUPLICATES Comp_List)
     ENDIF(Poco_FOUNDATION_LIB)
