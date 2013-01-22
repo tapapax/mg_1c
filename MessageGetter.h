@@ -7,7 +7,7 @@
 
 class CMessageGetter : public SmartComponentBase {
 public:
-	void getMessage();
+	SmartVariant getMessage();
 
 	CMessageGetter() : SmartComponentBase(L"MessageGetter") {
 		addMethod(L"GetMessage", L"ПолучитьПисьмо", 4, std::bind(&CMessageGetter::getMessage, this));

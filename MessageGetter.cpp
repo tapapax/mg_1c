@@ -93,7 +93,7 @@ string parseUIDLResponseToFindMessage(string& response, const wstring& messageID
 	return response.substr(lineBegin, position - lineBegin);
 }
 
-void CMessageGetter::getMessage() {
+SmartVariant CMessageGetter::getMessage() {
 	wstring server = getParameter<wstring>(1);
 	wstring login = getParameter<wstring>(2);
 	wstring password = getParameter<wstring>(3);
@@ -136,5 +136,5 @@ void CMessageGetter::getMessage() {
 		throw narrowToWide(e.what());
 	}
 
-	returnValue(BlobData(answer));
+	return BlobData(answer);
 }

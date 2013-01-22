@@ -1,17 +1,17 @@
 
 #include "SmartComponentBase.h"
 
-void SmartComponentBase::packToVariant(double value, tVariant* var) {
+void SmartComponentBase::packToVariant(const double value, tVariant* var) {
 	TV_VT(var) = VTYPE_R8;
 	TV_R8(var) = value;
 }
 
-void SmartComponentBase::packToVariant(int32_t value, tVariant* var) {
+void SmartComponentBase::packToVariant(const long value, tVariant* var) {
 	TV_VT(var) = VTYPE_I4;
 	TV_I4(var) = value;
 }
 
-void SmartComponentBase::packToVariant(bool value, tVariant* var) {
+void SmartComponentBase::packToVariant(const bool value, tVariant* var) {
 	TV_VT(var) = VTYPE_BOOL;
 	TV_BOOL(var) = value;
 }
@@ -51,8 +51,8 @@ void SmartComponentBase::packToVariant(const string& str, tVariant* var) {
 	var->strLen = str.size();
 }
 
-void SmartComponentBase::getErrorDescription() {
-	returnValue(mLastErrorDescription);
+SmartVariant SmartComponentBase::getErrorDescription() {
+	return mLastErrorDescription;
 }
 //---------------------------------------------------------------------------//
 SmartComponentBase::SmartComponentBase(wstring name)
@@ -234,12 +234,18 @@ bool SmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValu
 
 	try {
 
-		mMethods[lMethodNum].method();
+		SmartVariant result = mMethods[lMethodNum].method();
+		if (result.type() == typeid(string)) packToVariant(*result.getValue<string>(), pvarRetValue);
+		else if (result.type() == typeid(wstring)) packToVariant(*result.getValue<wstring>(), pvarRetValue);
+		else if (result.type() == typeid(double)) packToVariant(*result.getValue<double>(), pvarRetValue);
+		else if (result.type() == typeid(bool)) packToVariant(*result.getValue<bool>(), pvarRetValue);
+		else if (result.type() == typeid(BlobData)) packToVariant(*result.getValue<BlobData>(), pvarRetValue);
+		else if (result.type() == typeid(long)) packToVariant(*result.getValue<long>(), pvarRetValue);
+		else throw wstring(L"<incorrect return value type>");
+
 		error = false;
 
-	} catch (OKReturn) {
-		error = false;
-	} catch (wstring errorDescription) {
+	} catch (wstring& errorDescription) {
 		mLastErrorDescription = errorDescription;
 	} catch (...) {
 		mLastErrorDescription = L"<unknown error>";
@@ -272,5 +278,9 @@ bool SmartComponentBase::setMemManager(void* mem) {
 void SmartComponentBase::addMethod(wstring englishName, wstring localName, long parametersCount, componentMethod method) {
 	Method meth = { englishName, localName, parametersCount, method };
 	mMethods.push_back(meth);
+}
+
+void SmartComponentBase::message(wstring msg, long code /*= 0*/) {
+	mConnect->AddError(ADDIN_E_INFO, mComponentName.c_str(), msg.c_str(), code);
 }
 

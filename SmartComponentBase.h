@@ -13,6 +13,78 @@
 
 using namespace std;
 
+class SmartComponentBase;
+
+class SmartVariant {
+	friend class SmartComponentBase;
+
+public:
+	class BadCast {};
+
+	SmartVariant() : mContent(NULL) {}
+	~SmartVariant() { delete mContent; }
+
+	template <class T>
+	SmartVariant(T& value) : mContent(new ConcreteContent<T>(value)) {}
+
+	SmartVariant(const SmartVariant& sec) : mContent(sec.mContent ? sec.mContent->clone() : 0) {}
+
+	template <typename T>
+	SmartVariant& operator=(const T& sec) {
+		SmartVariant(sec).swap(*this);
+		return *this;
+	}
+
+	SmartVariant& operator=(const SmartVariant& sec) {
+		SmartVariant(sec).swap(*this);
+		return *this;
+	}
+
+	bool empty() const {
+		return !mContent;
+	}
+
+	const std::type_info& type() const {
+		return mContent ? mContent->type() : typeid(void);
+	}
+
+	SmartVariant& swap(SmartVariant& sec) {
+		std::swap(mContent, sec.mContent);
+		return *this;
+	}
+
+private:
+	class Content {
+	public:
+		virtual ~Content() {}
+
+		virtual const std::type_info& type() const = 0;
+		virtual Content* clone() const = 0;
+	};
+
+	template <class T>
+	class ConcreteContent: public Content {
+	public: 
+		ConcreteContent(const T& value): mValue(value) {}
+
+		virtual const std::type_info& type() const { return typeid(T); }
+
+		virtual ConcreteContent* clone() const {
+			return new ConcreteContent(mValue);
+		}
+
+		T mValue;
+	};
+
+	template <class T>
+	T* getValue() {
+		if (typeid(T) != mContent->type()) throw BadCast();
+		return &(static_cast<SmartVariant::ConcreteContent<T>*>(mContent))->mValue;
+	}
+
+	Content* mContent;
+};
+
 class BlobData {
 public:
 	BlobData(string data) : mData(data) {}
@@ -24,7 +96,7 @@ private:
 
 class SmartComponentBase : public IComponentBase {
 public:
-	typedef function<void()> componentMethod;
+	typedef function<SmartVariant()> componentMethod;
 
 private:
 	class OKReturn {};
@@ -37,9 +109,9 @@ private:
 	void packToVariant(const wstring& str, tVariant*);
 	void packToVariant(const string& str, tVariant*);
 	void packToVariant(const BlobData& blob, tVariant*);
-	void packToVariant(bool value, tVariant*);
-	void packToVariant(int32_t value, tVariant*);
-	void packToVariant(double value, tVariant*);
+	void packToVariant(const bool value, tVariant*);
+	void packToVariant(const long value, tVariant*);
+	void packToVariant(const double value, tVariant*);
 
 	template <class Type> Type extractFromVariant(tVariant* var);
 	template <>	wstring extractFromVariant<wstring>(tVariant* var);
@@ -104,11 +176,9 @@ public:
     virtual bool ADDIN_API CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray);
     virtual void ADDIN_API SetLocale(const WCHAR_T* loc);
 
-	void getErrorDescription();
+	SmartVariant getErrorDescription();
 
-	void viewError(wstring msg, long code = 237) {
-		mConnect->AddError(ADDIN_E_FAIL, mComponentName.c_str(), msg.c_str(), code);
-	}
+	void message(wstring msg, long code = 0);
 };
 
 template <class RetValType>
