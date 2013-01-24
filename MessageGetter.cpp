@@ -93,11 +93,11 @@ string parseUIDLResponseToFindMessage(string& response, const wstring& messageID
 	return response.substr(lineBegin, position - lineBegin);
 }
 
-SmartVariant CMessageGetter::getMessage() {
-	wstring server = getParameter<wstring>(1);
-	wstring login = getParameter<wstring>(2);
-	wstring password = getParameter<wstring>(3);
-	wstring messageID = getParameter<wstring>(4);
+SmartVariant CMessageGetter::getMessage(SmartVariant* parameters) {
+	wstring server = parameters[0];
+	wstring login = parameters[1];
+	wstring password = parameters[2];
+	wstring messageID = parameters[3];
 
 	auto semicolon = server.find_first_of(L':');
 	if (semicolon == wstring::npos) {
@@ -136,5 +136,9 @@ SmartVariant CMessageGetter::getMessage() {
 		throw narrowToWide(e.what());
 	}
 
-	return BlobData(answer);
+	return BinaryData(answer);
+}
+
+CMessageGetter::CMessageGetter() : SmartComponentBase(L"MessageGetter") {
+	addMethod(L"GetMessage", L"ПолучитьПисьмо", 4, std::bind(&CMessageGetter::getMessage, this, std::placeholders::_1));
 }

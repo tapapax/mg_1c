@@ -15,25 +15,45 @@ using namespace std;
 
 class SmartComponentBase;
 
+class Undefined {};
+
+class BinaryData {
+public:
+	BinaryData(string data) : mData(data) {}
+
+	const string& getData() const { return mData;}
+private:
+	string mData;
+};
+
 class SmartVariant {
 	friend class SmartComponentBase;
 
 public:
-	class BadCast {};
+	class BadCast : public std::exception {
+		virtual const char* what() const throw() {
+			return "<wrong value type>";
+		}
+	};
 
 	SmartVariant() : mContent(NULL) {}
 	~SmartVariant() { delete mContent; }
 
-	template <class T>
-	SmartVariant(T& value) : mContent(new ConcreteContent<T>(value)) {}
+	#define ADD_SUPPORT_TYPE(type) \
+		SmartVariant(const type& value) : mContent(new ConcreteContent<type>(value)) {} \
+		SmartVariant& operator=(const type& value) { SmartVariant(value).swap(*this); return *this; } \
+		operator type() { return getValue<type>(); }
+
+	ADD_SUPPORT_TYPE(string)
+	ADD_SUPPORT_TYPE(wstring)
+	ADD_SUPPORT_TYPE(long)
+	ADD_SUPPORT_TYPE(double)
+	ADD_SUPPORT_TYPE(bool)
+	ADD_SUPPORT_TYPE(BinaryData)
+	ADD_SUPPORT_TYPE(Undefined)
+	#undef ADD_SUPPORT_TYPE
 
 	SmartVariant(const SmartVariant& sec) : mContent(sec.mContent ? sec.mContent->clone() : 0) {}
-
-	template <typename T>
-	SmartVariant& operator=(const T& sec) {
-		SmartVariant(sec).swap(*this);
-		return *this;
-	}
 
 	SmartVariant& operator=(const SmartVariant& sec) {
 		SmartVariant(sec).swap(*this);
@@ -77,48 +97,34 @@ private:
 	};
 
 	template <class T>
-	T* getValue() {
+	T getValue() {
 		if (typeid(T) != mContent->type()) throw BadCast();
-		return &(static_cast<SmartVariant::ConcreteContent<T>*>(mContent))->mValue;
+		return (static_cast<SmartVariant::ConcreteContent<T>*>(mContent))->mValue;
 	}
 
 	Content* mContent;
 };
 
-class BlobData {
-public:
-	BlobData(string data) : mData(data) {}
-
-	const string& getData() const { return mData;}
-private:
-	string mData;
-};
-
 class SmartComponentBase : public IComponentBase {
 public:
-	typedef function<SmartVariant()> componentMethod;
+	typedef function<SmartVariant(SmartVariant*)> componentMethod;
 
 private:
 	class OKReturn {};
 
-	tVariant* mReturnValueHandler;
-	tVariant* mParametersHandler;
-	long mParametersHandlerSize;
 	wstring mLastErrorDescription;
 
-	void packToVariant(const wstring& str, tVariant*);
-	void packToVariant(const string& str, tVariant*);
-	void packToVariant(const BlobData& blob, tVariant*);
-	void packToVariant(const bool value, tVariant*);
-	void packToVariant(const long value, tVariant*);
-	void packToVariant(const double value, tVariant*);
-
-	template <class Type> Type extractFromVariant(tVariant* var);
-	template <>	wstring extractFromVariant<wstring>(tVariant* var);
-
-	static wstring varToString(tVariant*);
+	void putValueInVariant(const wstring& str, tVariant*);
+	void putValueInVariant(const string& str, tVariant*);
+	void putValueInVariant(const BinaryData& blob, tVariant*);
+	void putValueInVariant(const bool value, tVariant*);
+	void putValueInVariant(const long value, tVariant*);
+	void putValueInVariant(const double value, tVariant*);
 
 	const wstring mComponentName;
+
+	SmartVariant extractVariant(tVariant* var);
+	void packVariant(SmartVariant& svar, tVariant* var);
 
 protected:
 	static const int PROP_READABLE = 1;
@@ -176,30 +182,9 @@ public:
     virtual bool ADDIN_API CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray);
     virtual void ADDIN_API SetLocale(const WCHAR_T* loc);
 
-	SmartVariant getErrorDescription();
+	SmartVariant getErrorDescription(SmartVariant*);
 
 	void message(wstring msg, long code = 0);
 };
-
-template <class RetValType>
-void SmartComponentBase::returnValue(RetValType value) {
-	if (!mReturnValueHandler) return;
-
-	packToVariant(value, mReturnValueHandler);
-
-	throw OKReturn();
-}
-
-template <class ParameterType>
-ParameterType SmartComponentBase::getParameter(long number) {
-	if (mParametersHandler == NULL || number > mParametersHandlerSize || number < 1) return ParameterType();
-
-	return extractFromVariant<ParameterType>(mParametersHandler + number - 1);
-}
-
-template <>
-wstring SmartComponentBase::extractFromVariant<wstring>(tVariant* var) {
-	return varToString(var);
-}
 
 #endif

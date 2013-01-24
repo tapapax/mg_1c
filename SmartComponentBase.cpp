@@ -1,57 +1,7 @@
 
 #include "SmartComponentBase.h"
 
-void SmartComponentBase::packToVariant(const double value, tVariant* var) {
-	TV_VT(var) = VTYPE_R8;
-	TV_R8(var) = value;
-}
-
-void SmartComponentBase::packToVariant(const long value, tVariant* var) {
-	TV_VT(var) = VTYPE_I4;
-	TV_I4(var) = value;
-}
-
-void SmartComponentBase::packToVariant(const bool value, tVariant* var) {
-	TV_VT(var) = VTYPE_BOOL;
-	TV_BOOL(var) = value;
-}
-
-void SmartComponentBase::packToVariant(const BlobData& blob, tVariant* var){
-	packToVariant(blob.getData(), var);
-	TV_VT(var) = VTYPE_BLOB;
-}
-
-void SmartComponentBase::packToVariant(const wstring& str, tVariant* var) {
-	wchar_t* ptr;
-	auto size = (str.size() + 1) * sizeof(wchar_t);
-
-	if (!mMemoryManager->AllocMemory((void**)&ptr, size)) {
-		throw wstring(L"Allocation error");
-	}
-
-	memcpy(ptr, str.c_str(), size);
-
-	TV_VT(var) = VTYPE_PWSTR;
-	TV_WSTR(var) = ptr;
-	var->wstrLen = str.size();
-}
-
-void SmartComponentBase::packToVariant(const string& str, tVariant* var) {
-	char* ptr;
-	auto size = (str.size() + 1) * sizeof(char);
-
-	if (!mMemoryManager->AllocMemory((void**)&ptr, size)) {
-		throw wstring(L"Allocation error");
-	}
-
-	memcpy(ptr, str.c_str(), size);
-
-	TV_VT(var) = VTYPE_PSTR;
-	TV_STR(var) = ptr;
-	var->strLen = str.size();
-}
-
-SmartVariant SmartComponentBase::getErrorDescription() {
+SmartVariant SmartComponentBase::getErrorDescription(SmartVariant*) {
 	return mLastErrorDescription;
 }
 //---------------------------------------------------------------------------//
@@ -59,12 +9,9 @@ SmartComponentBase::SmartComponentBase(wstring name)
 	:
 	mMemoryManager(NULL),
 	mConnect(NULL),
-	mReturnValueHandler(NULL),
-	mParametersHandler(NULL),
-	mParametersHandlerSize(0),
 	mComponentName(name)
 {
-	addMethod(L"ErrorDescription", L"ќписаниеќшибки", 0, bind(&SmartComponentBase::getErrorDescription, this));
+	addMethod(L"ErrorDescription", L"ќписаниеќшибки", 0, bind(&SmartComponentBase::getErrorDescription, this, std::placeholders::_1));
 }
 //---------------------------------------------------------------------------//
 SmartComponentBase::~SmartComponentBase() {
@@ -210,52 +157,35 @@ bool SmartComponentBase::CallAsProc(const long lMethodNum, tVariant* paParams, c
 	return false;
 }
 //---------------------------------------------------------------------------//
-wstring SmartComponentBase::varToString(tVariant* Variant) {
-	if (TV_VT(Variant) == VTYPE_PWSTR) {
-		return wstring(TV_WSTR(Variant));
-	} else if (TV_VT(Variant) == VTYPE_PSTR) {
-		//return wstring(Variant->pstrVal, Variant->pstrVal + Variant->strLen);
-		string temp = TV_STR(Variant);
-		return wstring(temp.begin(), temp.end());
-	}
-
-	return L"";
-}
-//---------------------------------------------------------------------------//
 bool SmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return false;
 	if (lSizeArray != mMethods[lMethodNum].parametersCount) return false;
-
-	mReturnValueHandler = pvarRetValue;
-	mParametersHandler = paParams;
-	mParametersHandlerSize = lSizeArray;
 
 	bool error = true;
 
 	try {
 
-		SmartVariant result = mMethods[lMethodNum].method();
-		if (result.type() == typeid(string)) packToVariant(*result.getValue<string>(), pvarRetValue);
-		else if (result.type() == typeid(wstring)) packToVariant(*result.getValue<wstring>(), pvarRetValue);
-		else if (result.type() == typeid(double)) packToVariant(*result.getValue<double>(), pvarRetValue);
-		else if (result.type() == typeid(bool)) packToVariant(*result.getValue<bool>(), pvarRetValue);
-		else if (result.type() == typeid(BlobData)) packToVariant(*result.getValue<BlobData>(), pvarRetValue);
-		else if (result.type() == typeid(long)) packToVariant(*result.getValue<long>(), pvarRetValue);
-		else throw wstring(L"<incorrect return value type>");
+		vector<SmartVariant> smartParameters(lSizeArray);
+		for (int i = 0; i < lSizeArray; i++) {
+			smartParameters[i] = extractVariant(paParams + i);
+		}
+
+		SmartVariant result = mMethods[lMethodNum].method(&smartParameters[0]);
+		
+		packVariant(result, pvarRetValue);
 
 		error = false;
 
 	} catch (wstring& errorDescription) {
 		mLastErrorDescription = errorDescription;
+	} catch (std::exception& e) {
+		std::string what = e.what();
+		mLastErrorDescription = wstring(what.begin(), what.end());
 	} catch (...) {
 		mLastErrorDescription = L"<unknown error>";
 	}
 
 	if (!error) mLastErrorDescription.clear();
-
-	mReturnValueHandler = NULL;
-	mParametersHandler = NULL;
-	mParametersHandlerSize = 0;
 
 	return !error;
 }
@@ -282,5 +212,79 @@ void SmartComponentBase::addMethod(wstring englishName, wstring localName, long 
 
 void SmartComponentBase::message(wstring msg, long code /*= 0*/) {
 	mConnect->AddError(ADDIN_E_INFO, mComponentName.c_str(), msg.c_str(), code);
+}
+
+SmartVariant SmartComponentBase::extractVariant(tVariant* var) {
+	SmartVariant result;
+
+	if (var->vt == VTYPE_BOOL) result = var->bVal;
+	else if (var->vt == VTYPE_I2 || var->vt == VTYPE_I4 || var->vt == VTYPE_ERROR || var->vt == VTYPE_UI1) result = (long)var->lVal;
+	else if (var->vt == VTYPE_R4 || var->vt == VTYPE_R8 /*|| var->vt == VTYPE_CY*/) result = var->dblVal;
+	else if (var->vt == VTYPE_PWSTR) result = std::wstring(var->pwstrVal, var->wstrLen);
+	else if (var->vt == VTYPE_EMPTY) result = Undefined();
+	else throw wstring(L"<unsupported variant type>");
+
+	return result;
+}
+
+void SmartComponentBase::packVariant(SmartVariant& svar, tVariant* var) {
+	if (svar.type() == typeid(wstring)) putValueInVariant(svar.getValue<wstring>(), var);
+	//else if (svar.type() == typeid(string)) putValueInVariant(svar.getValue<string>(), var);
+	else if (svar.type() == typeid(double)) putValueInVariant(svar.getValue<double>(), var);
+	else if (svar.type() == typeid(bool)) putValueInVariant(svar.getValue<bool>(), var);
+	else if (svar.type() == typeid(BinaryData)) putValueInVariant(svar.getValue<BinaryData>(), var);
+	else if (svar.type() == typeid(long)) putValueInVariant(svar.getValue<long>(), var);
+	else if (svar.type() == typeid(Undefined)) var->vt = VTYPE_EMPTY;
+	else throw wstring(L"<outgoing variable has wrong type>");
+}
+
+void SmartComponentBase::putValueInVariant(const double value, tVariant* var) {
+	TV_VT(var) = VTYPE_R8;
+	TV_R8(var) = value;
+}
+
+void SmartComponentBase::putValueInVariant(const long value, tVariant* var) {
+	TV_VT(var) = VTYPE_I4;
+	TV_I4(var) = value;
+}
+
+void SmartComponentBase::putValueInVariant(const bool value, tVariant* var) {
+	TV_VT(var) = VTYPE_BOOL;
+	TV_BOOL(var) = value;
+}
+
+void SmartComponentBase::putValueInVariant(const BinaryData& blob, tVariant* var){
+	putValueInVariant(blob.getData(), var);
+	TV_VT(var) = VTYPE_BLOB;
+}
+
+void SmartComponentBase::putValueInVariant(const wstring& str, tVariant* var) {
+	wchar_t* ptr;
+	auto size = (str.size() + 1) * sizeof(wchar_t);
+
+	if (!mMemoryManager->AllocMemory((void**)&ptr, size)) {
+		throw wstring(L"Allocation error");
+	}
+
+	memcpy(ptr, str.c_str(), size);
+
+	TV_VT(var) = VTYPE_PWSTR;
+	TV_WSTR(var) = ptr;
+	var->wstrLen = str.size();
+}
+
+void SmartComponentBase::putValueInVariant(const string& str, tVariant* var) {
+	char* ptr;
+	auto size = (str.size() + 1) * sizeof(char);
+
+	if (!mMemoryManager->AllocMemory((void**)&ptr, size)) {
+		throw wstring(L"Allocation error");
+	}
+
+	memcpy(ptr, str.c_str(), size);
+
+	TV_VT(var) = VTYPE_PSTR;
+	TV_STR(var) = ptr;
+	var->strLen = str.size();
 }
 
