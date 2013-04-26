@@ -93,7 +93,7 @@ string parseUIDLResponseToFindMessage(string& response, const wstring& messageID
 	return response.substr(lineBegin, position - lineBegin);
 }
 
-SmartVariant CMessageGetter::getMessage(SmartVariant* parameters) {
+SmartVariant CMessageGetter::getMessage(vector<SmartVariant> parameters) {
 	wstring server = parameters[0];
 	wstring login = parameters[1];
 	wstring password = parameters[2];

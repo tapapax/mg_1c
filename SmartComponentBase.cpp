@@ -1,7 +1,7 @@
 
 #include "SmartComponentBase.h"
 
-SmartVariant SmartComponentBase::getErrorDescription(SmartVariant*) {
+SmartVariant SmartComponentBase::getErrorDescription(SmartParameters) {
 	return mLastErrorDescription;
 }
 //---------------------------------------------------------------------------//
@@ -170,9 +170,9 @@ bool SmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValu
 			smartParameters[i] = extractVariant(paParams + i);
 		}
 
-		SmartVariant result = mMethods[lMethodNum].method(&smartParameters[0]);
+		SmartVariant result = mMethods[lMethodNum].method(smartParameters);
 		
-		packVariant(result, pvarRetValue);
+		packVariant(result, pvarRetValue, mMemoryManager);
 
 		error = false;
 
@@ -212,79 +212,5 @@ void SmartComponentBase::addMethod(wstring englishName, wstring localName, long 
 
 void SmartComponentBase::message(wstring msg, long code /*= 0*/) {
 	mConnect->AddError(ADDIN_E_INFO, mComponentName.c_str(), msg.c_str(), code);
-}
-
-SmartVariant SmartComponentBase::extractVariant(tVariant* var) {
-	SmartVariant result;
-
-	if (var->vt == VTYPE_BOOL) result = var->bVal;
-	else if (var->vt == VTYPE_I2 || var->vt == VTYPE_I4 || var->vt == VTYPE_ERROR || var->vt == VTYPE_UI1) result = (long)var->lVal;
-	else if (var->vt == VTYPE_R4 || var->vt == VTYPE_R8 /*|| var->vt == VTYPE_CY*/) result = var->dblVal;
-	else if (var->vt == VTYPE_PWSTR) result = std::wstring(var->pwstrVal, var->wstrLen);
-	else if (var->vt == VTYPE_EMPTY) result = Undefined();
-	else throw wstring(L"<unsupported variant type>");
-
-	return result;
-}
-
-void SmartComponentBase::packVariant(SmartVariant& svar, tVariant* var) {
-	if (svar.type() == typeid(wstring)) putValueInVariant(svar.getValue<wstring>(), var);
-	//else if (svar.type() == typeid(string)) putValueInVariant(svar.getValue<string>(), var);
-	else if (svar.type() == typeid(double)) putValueInVariant(svar.getValue<double>(), var);
-	else if (svar.type() == typeid(bool)) putValueInVariant(svar.getValue<bool>(), var);
-	else if (svar.type() == typeid(BinaryData)) putValueInVariant(svar.getValue<BinaryData>(), var);
-	else if (svar.type() == typeid(long)) putValueInVariant(svar.getValue<long>(), var);
-	else if (svar.type() == typeid(Undefined)) var->vt = VTYPE_EMPTY;
-	else throw wstring(L"<outgoing variable has wrong type>");
-}
-
-void SmartComponentBase::putValueInVariant(const double value, tVariant* var) {
-	TV_VT(var) = VTYPE_R8;
-	TV_R8(var) = value;
-}
-
-void SmartComponentBase::putValueInVariant(const long value, tVariant* var) {
-	TV_VT(var) = VTYPE_I4;
-	TV_I4(var) = value;
-}
-
-void SmartComponentBase::putValueInVariant(const bool value, tVariant* var) {
-	TV_VT(var) = VTYPE_BOOL;
-	TV_BOOL(var) = value;
-}
-
-void SmartComponentBase::putValueInVariant(const BinaryData& blob, tVariant* var){
-	putValueInVariant(blob.getData(), var);
-	TV_VT(var) = VTYPE_BLOB;
-}
-
-void SmartComponentBase::putValueInVariant(const wstring& str, tVariant* var) {
-	wchar_t* ptr;
-	auto size = (str.size() + 1) * sizeof(wchar_t);
-
-	if (!mMemoryManager->AllocMemory((void**)&ptr, size)) {
-		throw wstring(L"Allocation error");
-	}
-
-	memcpy(ptr, str.c_str(), size);
-
-	TV_VT(var) = VTYPE_PWSTR;
-	TV_WSTR(var) = ptr;
-	var->wstrLen = str.size();
-}
-
-void SmartComponentBase::putValueInVariant(const string& str, tVariant* var) {
-	char* ptr;
-	auto size = (str.size() + 1) * sizeof(char);
-
-	if (!mMemoryManager->AllocMemory((void**)&ptr, size)) {
-		throw wstring(L"Allocation error");
-	}
-
-	memcpy(ptr, str.c_str(), size);
-
-	TV_VT(var) = VTYPE_PSTR;
-	TV_STR(var) = ptr;
-	var->strLen = str.size();
 }
 

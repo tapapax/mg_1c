@@ -7,7 +7,7 @@
 
 class CMessageGetter : public SmartComponentBase {
 public:
-	SmartVariant getMessage(SmartVariant*);
+	SmartVariant getMessage(SmartParameters);
 
 	CMessageGetter();
 };
