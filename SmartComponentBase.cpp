@@ -4,7 +4,7 @@
 SmartVariant SmartComponentBase::getErrorDescription(SmartParameters) {
 	return mLastErrorDescription;
 }
-//---------------------------------------------------------------------------//
+
 SmartComponentBase::SmartComponentBase(wstring name)
 	:
 	mMemoryManager(NULL),
@@ -13,24 +13,24 @@ SmartComponentBase::SmartComponentBase(wstring name)
 {
 	addMethod(L"ErrorDescription", L"ќписаниеќшибки", 0, bind(&SmartComponentBase::getErrorDescription, this, std::placeholders::_1));
 }
-//---------------------------------------------------------------------------//
+
 SmartComponentBase::~SmartComponentBase() {
 
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::Init(void* pConnection) { 
 	mConnect = (IAddInDefBase*)pConnection;
 	return mConnect != NULL;
 }
-//---------------------------------------------------------------------------//
+
 long SmartComponentBase::GetInfo() { 
 	return 2000; 
 }
-//---------------------------------------------------------------------------//
+
 void SmartComponentBase::Done() {
 
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::RegisterExtensionAs(WCHAR_T** wsExtensionName) { 
 	if (!mMemoryManager) return false;
 	if (!mMemoryManager->AllocMemory((void**)wsExtensionName, (mComponentName.size() + 1) * sizeof(WCHAR_T))) return false;
@@ -39,11 +39,11 @@ bool SmartComponentBase::RegisterExtensionAs(WCHAR_T** wsExtensionName) {
 
 	return true; 
 }
-//---------------------------------------------------------------------------//
+
 long SmartComponentBase::GetNProps() { 
 	return mProperties.size();
 }
-//---------------------------------------------------------------------------//
+
 long SmartComponentBase::FindProp(const WCHAR_T* wsPropName) { 
 	for (unsigned long i = 0; i < mProperties.size(); i++) {
 		if (_wcsicmp(mProperties[i].englishName.c_str(), wsPropName) == 0 ||
@@ -52,7 +52,7 @@ long SmartComponentBase::FindProp(const WCHAR_T* wsPropName) {
 
 	return -1;
 }
-//---------------------------------------------------------------------------//
+
 const WCHAR_T* SmartComponentBase::GetPropName(long lPropNum, long lPropAlias) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return NULL;
 
@@ -72,7 +72,7 @@ const WCHAR_T* SmartComponentBase::GetPropName(long lPropNum, long lPropAlias) {
 
 	return result;
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::GetPropVal(const long lPropNum, tVariant* pvarPropVal) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
@@ -81,7 +81,7 @@ bool SmartComponentBase::GetPropVal(const long lPropNum, tVariant* pvarPropVal) 
 	return false;
 	//return ((Derived*)this->*property.getter)(pvarPropVal);
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::SetPropVal(const long lPropNum, tVariant *varPropVal) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
@@ -90,23 +90,23 @@ bool SmartComponentBase::SetPropVal(const long lPropNum, tVariant *varPropVal) {
 	return false;
 	//return ((Derived*)this->*property.setter)(varPropVal);
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::IsPropReadable(const long lPropNum) { 
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
 	return mProperties[lPropNum].modes & PROP_READABLE;
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::IsPropWritable(const long lPropNum) {
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
-	return (mProperties[lPropNum].modes & PROP_WRITEABLE) != 0;
+	return mProperties[lPropNum].modes & PROP_WRITEABLE;
 }
-//---------------------------------------------------------------------------//
+
 long SmartComponentBase::GetNMethods() { 
 	return mMethods.size();
 }
-//---------------------------------------------------------------------------//
+
 long SmartComponentBase::FindMethod(const WCHAR_T* wsMethodName) { 
 	for (unsigned long i = 0; i < mMethods.size(); i++) {
 		if (_wcsicmp(mMethods[i].englishName.c_str(), wsMethodName) == 0 ||
@@ -115,7 +115,7 @@ long SmartComponentBase::FindMethod(const WCHAR_T* wsMethodName) {
 
 	return -1;
 }
-//---------------------------------------------------------------------------//
+
 const WCHAR_T* SmartComponentBase::GetMethodName(const long lMethodNum, const long lMethodAlias) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return NULL;
 
@@ -135,28 +135,28 @@ const WCHAR_T* SmartComponentBase::GetMethodName(const long lMethodNum, const lo
 
 	return result;
 }
-//---------------------------------------------------------------------------//
+
 long SmartComponentBase::GetNParams(const long lMethodNum) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return 0;
 
 	return mMethods[lMethodNum].parametersCount;
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::GetParamDefValue(const long lMethodNum, const long lParamNum, tVariant *pvarParamDefValue) { 
 	TV_VT(pvarParamDefValue)= VTYPE_EMPTY;
 	return false;
 } 
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::HasRetVal(const long lMethodNum) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return false;
 
 	return true;
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::CallAsProc(const long lMethodNum, tVariant* paParams, const long lSizeArray) { 
 	return false;
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray) { 
 	if ((unsigned long)lMethodNum >= mMethods.size()) return false;
 	if (lSizeArray != mMethods[lMethodNum].parametersCount) return false;
@@ -172,6 +172,10 @@ bool SmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValu
 
 		SmartVariant result = mMethods[lMethodNum].method(smartParameters);
 		
+		for (int i = 0; i < lSizeArray; i++) {
+			packVariant(smartParameters[i], paParams + i, mMemoryManager);
+		}
+
 		packVariant(result, pvarRetValue, mMemoryManager);
 
 		error = false;
@@ -189,22 +193,22 @@ bool SmartComponentBase::CallAsFunc(const long lMethodNum, tVariant* pvarRetValu
 
 	return !error;
 }
-//---------------------------------------------------------------------------//
+
 void SmartComponentBase::SetLocale(const WCHAR_T* loc) {
 	_wsetlocale(LC_ALL, loc);
 }
-//---------------------------------------------------------------------------//
+
 bool SmartComponentBase::setMemManager(void* mem) {
 	mMemoryManager = (IMemoryManager*)mem;
 	return mMemoryManager != NULL;
 }
-//---------------------------------------------------------------------------//
+
 //void CSmartComponentBase::addProperty(wstring englishName, wstring localName, int modes, bool (Derived::*getter)(tVariant*),
 //									  bool (Derived::*setter)(tVariant*)) {
 //	Property prop = { englishName, localName, modes, getter, setter };
 //	mProperties.push_back(prop);
 //}
-//---------------------------------------------------------------------------//
+
 void SmartComponentBase::addMethod(wstring englishName, wstring localName, long parametersCount, componentMethod method) {
 	Method meth = { englishName, localName, parametersCount, method };
 	mMethods.push_back(meth);

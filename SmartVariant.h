@@ -3,6 +3,7 @@
 #define SmartVariant_h__
 
 #include <string>
+#include <exception>
 
 #include "ComponentBase.h"
 #include "AddInDefBase.h"

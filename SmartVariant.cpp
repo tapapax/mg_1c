@@ -9,16 +9,10 @@ SmartVariant extractVariant(tVariant* var) {
 	else if (var->vt == VTYPE_R4 || var->vt == VTYPE_R8 /*|| var->vt == VTYPE_CY*/) result = var->dblVal;
 	else if (var->vt == VTYPE_PWSTR) result = std::wstring(var->pwstrVal, var->wstrLen);
 	else if (var->vt == VTYPE_EMPTY) result = Undefined();
-	else throw std::wstring(L"<unsupported variant type>");
+	else throw std::runtime_error("<unsupported variant type>");
 
 	return result;
 }
-
-class BadReturnValue : public std::exception {
-	virtual const char* what() const throw() {
-		return "<bad return value>";
-	}
-};
 
 void putDoubleInVariant(const double value, tVariant* var) {
 	TV_VT(var) = VTYPE_R8;
@@ -40,7 +34,7 @@ void putWStringInVariant(const std::wstring& str, tVariant* var, IMemoryManager*
 	auto size = (str.size() + 1) * sizeof(wchar_t);
 
 	if (!memoryManager->AllocMemory((void**)&ptr, size)) {
-		throw std::wstring(L"Allocation error");
+		throw std::bad_alloc();
 	}
 
 	memcpy(ptr, str.c_str(), size);
@@ -55,7 +49,7 @@ void putStringInVariant(const std::string& str, tVariant* var, IMemoryManager* m
 	auto size = (str.size() + 1) * sizeof(char);
 
 	if (!memoryManager->AllocMemory((void**)&ptr, size)) {
-		throw std::wstring(L"Allocation error");
+		throw std::bad_alloc();
 	}
 
 	memcpy(ptr, str.c_str(), size);
@@ -85,6 +79,6 @@ void packVariant(SmartVariant& svar, tVariant* var, IMemoryManager* memoryManage
 		putLongInVariant(svar.getValue<long>(), var);
 	else if (svar.type() == typeid(Undefined))
 		var->vt = VTYPE_EMPTY;
-	else throw BadReturnValue();
+	else throw std::runtime_error("<cannot cast variable>");
 }
 

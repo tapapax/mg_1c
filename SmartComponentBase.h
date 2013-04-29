@@ -17,7 +17,7 @@ using namespace std;
 
 class SmartComponentBase : public IComponentBase {
 public:
-	typedef std::vector<SmartVariant> SmartParameters;
+	typedef std::vector<SmartVariant>& SmartParameters;
 	typedef function<SmartVariant(SmartParameters)> componentMethod;
 
 private:
