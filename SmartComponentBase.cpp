@@ -11,7 +11,7 @@ SmartComponentBase::SmartComponentBase(wstring name)
 	mConnect(NULL),
 	mComponentName(name)
 {
-	addMethod(L"ErrorDescription", L"ќписаниеќшибки", 0, bind(&SmartComponentBase::getErrorDescription, this, std::placeholders::_1));
+	addFunction(L"ErrorDescription", L"ќписаниеќшибки", 0, bind(&SmartComponentBase::getErrorDescription, this, std::placeholders::_1));
 }
 
 SmartComponentBase::~SmartComponentBase() {
@@ -78,8 +78,26 @@ bool SmartComponentBase::GetPropVal(const long lPropNum, tVariant* pvarPropVal) 
 
 	auto property = mProperties[lPropNum];
 
-	return false;
-	//return ((Derived*)this->*property.getter)(pvarPropVal);
+	bool error = true;
+
+	try {
+
+		packVariant(property.getter(), pvarPropVal, mMemoryManager);
+
+		error = false;
+
+	} catch (wstring& errorDescription) {
+		mLastErrorDescription = errorDescription;
+	} catch (std::exception& e) {
+		std::string what = e.what();
+		mLastErrorDescription = wstring(what.begin(), what.end());
+	} catch (...) {
+		mLastErrorDescription = L"<unknown error>";
+	}
+
+	if (!error) mLastErrorDescription.clear();
+
+	return !error;
 }
 
 bool SmartComponentBase::SetPropVal(const long lPropNum, tVariant *varPropVal) { 
@@ -87,8 +105,26 @@ bool SmartComponentBase::SetPropVal(const long lPropNum, tVariant *varPropVal) {
 
 	auto property = mProperties[lPropNum];
 
-	return false;
-	//return ((Derived*)this->*property.setter)(varPropVal);
+	bool error = true;
+
+	try {
+
+		property.setter(extractVariant(varPropVal));
+
+		error = false;
+
+	} catch (wstring& errorDescription) {
+		mLastErrorDescription = errorDescription;
+	} catch (std::exception& e) {
+		std::string what = e.what();
+		mLastErrorDescription = wstring(what.begin(), what.end());
+	} catch (...) {
+		mLastErrorDescription = L"<unknown error>";
+	}
+
+	if (!error) mLastErrorDescription.clear();
+
+	return !error;
 }
 
 bool SmartComponentBase::IsPropReadable(const long lPropNum) { 
@@ -100,7 +136,7 @@ bool SmartComponentBase::IsPropReadable(const long lPropNum) {
 bool SmartComponentBase::IsPropWritable(const long lPropNum) {
 	if ((unsigned long)lPropNum >= mProperties.size()) return false;
 
-	return mProperties[lPropNum].modes & PROP_WRITEABLE;
+	return mProperties[lPropNum].modes & PROP_WRITEABLE != 0;
 }
 
 long SmartComponentBase::GetNMethods() { 
@@ -209,7 +245,12 @@ bool SmartComponentBase::setMemManager(void* mem) {
 //	mProperties.push_back(prop);
 //}
 
-void SmartComponentBase::addMethod(wstring englishName, wstring localName, long parametersCount, componentMethod method) {
+void SmartComponentBase::addProperty(wstring englishName, wstring localName, ComponentParameterSetter setter, ComponentParameterGetter getter, int modes /*= PROP_READABLE | PROP_WRITEABLE*/) {
+	Property prop = { englishName, localName, modes, setter, getter };
+	mProperties.push_back(prop);
+}
+
+void SmartComponentBase::addFunction(wstring englishName, wstring localName, long parametersCount, ComponentFunction method) {
 	Method meth = { englishName, localName, parametersCount, method };
 	mMethods.push_back(meth);
 }

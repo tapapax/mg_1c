@@ -140,5 +140,6 @@ SmartVariant CMessageGetter::getMessage(SmartParameters parameters) {
 }
 
 CMessageGetter::CMessageGetter() : SmartComponentBase(L"MessageGetter") {
-	addMethod(L"GetMessage", L"ПолучитьПисьмо", 4, std::bind(&CMessageGetter::getMessage, this, std::placeholders::_1));
+	addFunction(L"GetMessage", L"ПолучитьПисьмо", 4, std::bind(&CMessageGetter::getMessage, this, std::placeholders::_1));
 }
+

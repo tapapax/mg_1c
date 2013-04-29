@@ -18,12 +18,14 @@ using namespace std;
 class SmartComponentBase : public IComponentBase {
 public:
 	typedef std::vector<SmartVariant>& SmartParameters;
-	typedef function<SmartVariant(SmartParameters)> componentMethod;
+	typedef function<SmartVariant(SmartParameters)> ComponentFunction;
+	typedef function<void(SmartVariant)> ComponentParameterSetter;
+	typedef function<SmartVariant(void)> ComponentParameterGetter;
 
 private:
-	class OKReturn {};
-
 	wstring mLastErrorDescription;
+	IAddInDefBase* mConnect;
+	IMemoryManager* mMemoryManager;
 
 	const wstring mComponentName;
 
@@ -35,8 +37,8 @@ protected:
 		wstring englishName;
 		wstring localName;
 		int modes;
-		//bool (Derived::*getter)(tVariant*);
-		//bool (Derived::*setter)(tVariant*);
+		ComponentParameterSetter setter;
+		ComponentParameterGetter getter;
 	};
 	vector<Property> mProperties;
 
@@ -44,17 +46,15 @@ protected:
 		wstring englishName;
 		wstring localName;
 		long parametersCount;
-		componentMethod method;
+		ComponentFunction method;
 	};
 	vector<Method> mMethods;
 
-    IAddInDefBase* mConnect;
-    IMemoryManager* mMemoryManager;
+	void addFunction(wstring englishName, wstring localName, long parametersCount, ComponentFunction method);
+	void addProperty(wstring englishName, wstring localName, ComponentParameterSetter, ComponentParameterGetter, int modes = PROP_READABLE | PROP_WRITEABLE);
+	//void addProperty(wstring englishName, wstring localName, , int modes = PROP_READABLE | PROP_WRITEABLE);
 
-	//void addProperty(wstring englishName, wstring localName, int modes, bool (Derived::*getter)(tVariant*), bool (Derived::*setter)(tVariant*));
-	void addMethod(wstring englishName, wstring localName, long parametersCount, componentMethod method);
-
-	template <class RetValType>	void returnValue(RetValType);
+	//void trivialSetter();
 
 public:
 	SmartComponentBase(wstring name);
