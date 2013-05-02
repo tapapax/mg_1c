@@ -1,25 +1,31 @@
 
 #include "ComponentManager.h"
 
-#include "SmartComponentBase.h"
+#include "ComponentObject.h"
 
-AbstractComponentObject* ComponentManager::createObject(std::wstring name) {
-	return mObjects.at(name)->clone();
-}
+#include <string>
 
-const wchar_t* ComponentManager::getClassNames() {
-	static std::wstring classNames;
-	classNames.clear();
-	classNames.reserve(mObjects.size() * 16); // optional
+namespace E1C_Component {
 
-	for (auto object = mObjects.begin(); object != mObjects.end(); object++) {
-		classNames += object->first + L'|';
+	AbstractComponentObject* ComponentManager::createObject(std::wstring name) {
+		return mObjects.at(name)->clone();
 	}
-	if (!classNames.empty()) classNames.pop_back();
 
-	return classNames.c_str();
-}
+	const wchar_t* ComponentManager::getClassNames() {
+		static std::wstring classNames;
+		classNames.clear();
+		classNames.reserve(mObjects.size() * 16); // optional
 
-bool ComponentManager::typeIsRegistered(size_t type) {
-	return mRegistered.find(type) != mRegistered.end();
+		for (auto object = mObjects.begin(); object != mObjects.end(); object++) {
+			classNames += object->first + L'|';
+		}
+		if (!classNames.empty()) classNames.pop_back();
+
+		return classNames.c_str();
+	}
+
+	bool ComponentManager::typeIsRegistered(size_t type) {
+		return mRegistered.find(type) != mRegistered.end();
+	}
+
 }

@@ -7,45 +7,49 @@
 
 #include "BaseNativeAPI.h"
 
-class AbstractComponentObject : public BaseNativeAPI::IComponentBase {
-public:
-	virtual AbstractComponentObject* clone() = 0;
-};
+namespace E1C_Component {
 
-class ComponentManager {
-public:
-	~ComponentManager() {};
+	class AbstractComponentObject : public BaseNativeAPI::IComponentBase {
+	public:
+		virtual AbstractComponentObject* clone() = 0;
+	};
 
-	static ComponentManager& getSingleton(void) {
-		static ComponentManager singleton;
-		return singleton;
-	}
+	class ComponentManager {
+	public:
+		~ComponentManager() {};
 
-	template <class Object>
-	void registerObject(Object* object) {
-		size_t type = typeid(object).hash_code();
-
-		if (typeIsRegistered(type)) {
-			return;
+		static ComponentManager& getSingleton(void) {
+			static ComponentManager singleton;
+			return singleton;
 		}
 
-		mObjects[object->metadata().name()] = object;
-		mRegistered.insert(type);
-	}
+		template <class Object>
+		void registerObject(Object* object) {
+			size_t type = typeid(object).hash_code();
 
-	const wchar_t* getClassNames();
+			if (typeIsRegistered(type)) {
+				return;
+			}
 
-	AbstractComponentObject* createObject(std::wstring className);
+			mObjects[object->metadata().name()] = object;
+			mRegistered.insert(type);
+		}
 
-	bool typeIsRegistered(size_t);
+		const wchar_t* getClassNames();
 
-private:        
-	std::map<std::wstring, AbstractComponentObject*> mObjects;
-	std::set<size_t> mRegistered;
+		AbstractComponentObject* createObject(std::wstring className);
 
-	ComponentManager() {};
-	ComponentManager(const ComponentManager& root);
-	ComponentManager& operator=(const ComponentManager&);
-};
+		bool typeIsRegistered(size_t);
+
+	private:        
+		std::map<std::wstring, AbstractComponentObject*> mObjects;
+		std::set<size_t> mRegistered;
+
+		ComponentManager() {};
+		ComponentManager(const ComponentManager& root);
+		ComponentManager& operator=(const ComponentManager&);
+	};
+
+}
 
 #endif // ComponentManager_h__

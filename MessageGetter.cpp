@@ -95,7 +95,7 @@ string parseUIDLResponseToFindMessage(string& response, const wstring& messageID
 	return response.substr(lineBegin, position - lineBegin);
 }
 
-SmartVariant CMessageGetter::getMessage(SmartParameters parameters) {
+E1C_Component::Variant CMessageGetter::getMessage(E1C_Component::VariantParameters parameters) {
 	wstring server = parameters[0];
 	wstring login = parameters[1];
 	wstring password = parameters[2];
@@ -134,10 +134,10 @@ SmartVariant CMessageGetter::getMessage(SmartParameters parameters) {
 		dropFirstLine(answer);
 	} catch (Poco::Exception& e) {
 		throw narrowToWide(e.displayText());
-	} catch (exception& e) {
+	} catch (std::exception& e) {
 		throw narrowToWide(e.what());
 	}
 
-	return BinaryData(answer);
+	return E1C_Component::BinaryData(answer);
 }
 
