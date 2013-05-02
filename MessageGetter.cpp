@@ -1,6 +1,8 @@
 
 #include "MessageGetter.h"
 
+CMessageGetter messageGetter;
+
 bool dropFirstLine(string& initial) {
 	auto endOfLine = initial.find_first_of('\n');
 	if (endOfLine == string::npos) return false;
@@ -137,9 +139,5 @@ SmartVariant CMessageGetter::getMessage(SmartParameters parameters) {
 	}
 
 	return BinaryData(answer);
-}
-
-CMessageGetter::CMessageGetter() : SmartComponentBase(L"MessageGetter") {
-	addFunction(L"GetMessage", L"ПолучитьПисьмо", 4, std::bind(&CMessageGetter::getMessage, this, std::placeholders::_1));
 }
 

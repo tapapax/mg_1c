@@ -1,3 +1,4 @@
+
 #ifndef __ADDINNATIVE_H__
 #define __ADDINNATIVE_H__
 
@@ -5,11 +6,17 @@
 
 #include "SmartComponentBase.h"
 
-class CMessageGetter : public SmartComponentBase {
+using namespace std;
+
+class CMessageGetter : public SmartComponentBase<CMessageGetter> {
 public:
 	SmartVariant getMessage(SmartParameters);
 
-	CMessageGetter();
+	static Metadata<CMessageGetter> getMetadata() {
+		Metadata<CMessageGetter> md(L"MessageGetter");
+		md.addFunction(L"GetMessage", L"ПолучитьПисьмо", 4, &CMessageGetter::getMessage);
+		return md;
+	}
 };
 
 #endif //__ADDINNATIVE_H__

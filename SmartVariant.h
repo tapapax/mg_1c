@@ -26,8 +26,6 @@ private:
 };
 
 class SmartVariant {
-	friend class SmartComponentBase;
-
 public:
 	class BadCast : public std::exception {
 		virtual const char* what() const throw() {

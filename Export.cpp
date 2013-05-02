@@ -1,12 +1,16 @@
 
-#include "MessageGetter.h"
+#include "ComponentManager.h"
 
 long GetClassObject(const WCHAR_T* wsName, IComponentBase** pInterface) {
-    if(!*pInterface) {
-        *pInterface = new CMessageGetter;
-        return (long)*pInterface;
-    }
-    return 0;
+    if(*pInterface) return 0;
+
+	try {
+		*pInterface = ComponentManager::getSingleton().createObject(wstring(wsName));
+	} catch (...) {
+		return 0;
+	}
+
+    return (long)*pInterface;
 }
 
 long DestroyObject(IComponentBase** pIntf) {
@@ -19,7 +23,6 @@ long DestroyObject(IComponentBase** pIntf) {
 }
 
 const WCHAR_T* GetClassNames() {
-    static WCHAR_T* names = L"Class1";
-    return names;
+	return ComponentManager::getSingleton().getClassNames();
 }
 
