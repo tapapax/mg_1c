@@ -4,17 +4,17 @@
 
 #include "stdafx.h"
 
-#include "ComponentObject.h"
+#include "AddinObject.h"
 
 using std::string;
 using std::wstring;
 
-class CMessageGetter : public E1C_Component::ComponentObject<CMessageGetter> {
+class CMessageGetter : public Addin1C::AddinObject<CMessageGetter> {
 public:
-	E1C_Component::Variant getMessage(E1C_Component::VariantParameters);
+	Addin1C::Variant getMessage(Addin1C::VariantParameters);
 
-	static E1C_Component::Metadata<CMessageGetter> getMetadata() {
-		E1C_Component::Metadata<CMessageGetter> md(L"MessageGetter");
+	static Metadata getMetadata() {
+		Metadata md(L"MessageGetter");
 		md.addFunction(L"GetMessage", L"ПолучитьПисьмо", 4, &CMessageGetter::getMessage);
 		return md;
 	}

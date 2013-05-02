@@ -95,7 +95,7 @@ string parseUIDLResponseToFindMessage(string& response, const wstring& messageID
 	return response.substr(lineBegin, position - lineBegin);
 }
 
-E1C_Component::Variant CMessageGetter::getMessage(E1C_Component::VariantParameters parameters) {
+Addin1C::Variant CMessageGetter::getMessage(Addin1C::VariantParameters parameters) {
 	wstring server = parameters[0];
 	wstring login = parameters[1];
 	wstring password = parameters[2];
@@ -138,6 +138,6 @@ E1C_Component::Variant CMessageGetter::getMessage(E1C_Component::VariantParamete
 		throw narrowToWide(e.what());
 	}
 
-	return E1C_Component::BinaryData(answer);
+	return Addin1C::BinaryData(answer);
 }
 

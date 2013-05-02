@@ -2,6 +2,8 @@
 
 	Поддерживается только plaintext POP3.
 
+	Зависимости: POCO, Addin1C (https://github.com/tapapax/Addin1C)
+
 Использование
 	Компонента публикует объект MessageGetter с методом ПолучитьПисьмо(GetMessage):
 

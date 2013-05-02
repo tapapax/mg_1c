@@ -1,4 +1,4 @@
-LIBRARY    "mg_1c"
+LIBRARY    "Addin1C_Email"
 
 EXPORTS
 GetClassObject

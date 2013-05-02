@@ -4,7 +4,7 @@ Win32
 *.sln
 
 ## VS projects and solutions
-*proj
+#*proj
 *.filters
 
 ## CMake
