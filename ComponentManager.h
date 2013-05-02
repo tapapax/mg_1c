@@ -1,13 +1,16 @@
 
-#pragma once
-
-#include "SmartComponentBase.h"
+#ifndef ComponentManager_h__
+#define ComponentManager_h__
 
 #include <map>
 #include <set>
-#include <sstream>
 
-class CommonBase;
+#include "BaseNativeAPI.h"
+
+class AbstractComponentObject : public BaseNativeAPI::IComponentBase {
+public:
+	virtual AbstractComponentObject* clone() = 0;
+};
 
 class ComponentManager {
 public:
@@ -26,18 +29,18 @@ public:
 			return;
 		}
 
-		mObjects[object->metadata().name] = object;
+		mObjects[object->metadata().name()] = object;
 		mRegistered.insert(type);
 	}
 
 	const wchar_t* getClassNames();
 
-	CommonBase* createObject(std::wstring className);
+	AbstractComponentObject* createObject(std::wstring className);
 
 	bool typeIsRegistered(size_t);
 
 private:        
-	std::map<std::wstring, CommonBase*> mObjects;
+	std::map<std::wstring, AbstractComponentObject*> mObjects;
 	std::set<size_t> mRegistered;
 
 	ComponentManager() {};
@@ -45,3 +48,4 @@ private:
 	ComponentManager& operator=(const ComponentManager&);
 };
 
+#endif // ComponentManager_h__

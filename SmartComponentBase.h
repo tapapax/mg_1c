@@ -7,43 +7,27 @@
 #include <vector>
 #include <functional>
 
-#include "ComponentBase.h"
-#include "AddInDefBase.h"
-#include "IMemoryManager.h"
-
 #include "SmartVariant.h"
 #include "ComponentManager.h"
 
-#define CALL_MEMBER_FN(object,ptrToMember) ((object).*(ptrToMember))
-		
+#include "BaseNativeAPI.h"
+
+#define CALL_MEMBER_FN(object, ptrToMember) ((object).*(ptrToMember))
+#define CALL_POINTER_MEMBER(pointer, member) CALL_MEMBER_FN(*(pointer), (member))
+
 using namespace std;
 
 typedef std::vector<SmartVariant>& SmartParameters;
 
-class CommonBase;
+class AbstractComponentObject;
 
 template <class Object>
 class Metadata {
-public:	
 	typedef SmartVariant (Object::*ComponentFunction)(SmartParameters);
-	typedef function<void(SmartVariant)> ComponentParameterSetter;
-	typedef function<SmartVariant(void)> ComponentParameterGetter;
+	typedef void (Object::*ComponentParameterSetter)(SmartVariant);
+	typedef SmartVariant (Object::*ComponentParameterGetter)();
 
-	Metadata(wstring _name)
-		:
-		name(_name)
-	{}
-
-	void addFunction(wstring englishName, wstring localName, long parametersCount, ComponentFunction method) {
-		Function func = { englishName, localName, parametersCount, method };
-		functions.push_back(func);
-	}
-	void addProperty(wstring englishName, wstring localName, ComponentParameterSetter setter, ComponentParameterGetter getter, int modes = PROP_READABLE | PROP_WRITEABLE) {
-		Property prop = { englishName, localName, setter, getter, modes };
-		properties.push_back(prop);
-	}
-
-//private:
+private:
 	struct Function {
 		wstring englishName;
 		wstring localName;
@@ -58,25 +42,38 @@ public:
 		ComponentParameterGetter getter;
 	};
 
-	wstring name;
+public:	
+	Metadata(wstring name)
+		:
+		mName(name)
+	{}
 
-	vector<Function> functions;
-	vector<Property> properties;
-};
+	void addFunction(wstring englishName, wstring localName, long parametersCount, ComponentFunction method) {
+		Function func = { englishName, localName, parametersCount, method };
+		mFunctions.push_back(func);
+	}
+	void addProperty(wstring englishName, wstring localName, ComponentParameterSetter setter, ComponentParameterGetter getter, int modes = PROP_READABLE | PROP_WRITEABLE) {
+		Property prop = { englishName, localName, setter, getter, modes };
+		mProperties.push_back(prop);
+	}
 
-class CommonBase : public IComponentBase {
-public:
-	virtual CommonBase* clone() = 0;
+	const wstring& name() { return mName; }
+	const vector<Function>& functions() { return mFunctions; }
+	const vector<Property>& properties() { return mProperties; }
+
+private:
+	wstring mName;
+
+	vector<Function> mFunctions;
+	vector<Property> mProperties;
 };
 
 template <class DerivedComponent>
-class SmartComponentBase : public CommonBase {
+class SmartComponentBase : public AbstractComponentObject {
 private:
-	wstring mComponentName;
-
 	wstring mLastErrorDescription;
-	IAddInDefBase* mConnect;
-	IMemoryManager* mMemoryManager;
+	BaseNativeAPI::IAddInDefBase* mConnect;
+	BaseNativeAPI::IMemoryManager* mMemoryManager;
 
 	static inline Metadata<DerivedComponent>& getMetadata() {
 		static Metadata<DerivedComponent> md = DerivedComponent::getMetadata();
@@ -101,23 +98,23 @@ public:
     virtual long ADDIN_API GetNProps();
     virtual long ADDIN_API FindProp(const WCHAR_T* wsPropName);
     virtual const WCHAR_T* ADDIN_API GetPropName(long lPropNum, long lPropAlias);
-    virtual bool ADDIN_API GetPropVal(const long lPropNum, tVariant* pvarPropVal);
-    virtual bool ADDIN_API SetPropVal(const long lPropNum, tVariant* varPropVal);
+    virtual bool ADDIN_API GetPropVal(const long lPropNum, BaseNativeAPI::tVariant* pvarPropVal);
+    virtual bool ADDIN_API SetPropVal(const long lPropNum, BaseNativeAPI::tVariant* varPropVal);
     virtual bool ADDIN_API IsPropReadable(const long lPropNum);
     virtual bool ADDIN_API IsPropWritable(const long lPropNum);
     virtual long ADDIN_API GetNMethods();
     virtual long ADDIN_API FindMethod(const WCHAR_T* wsMethodName);
     virtual const WCHAR_T* ADDIN_API GetMethodName(const long lMethodNum, const long lMethodAlias);
     virtual long ADDIN_API GetNParams(const long lMethodNum);
-    virtual bool ADDIN_API GetParamDefValue(const long lMethodNum, const long lParamNum, tVariant *pvarParamDefValue);   
+    virtual bool ADDIN_API GetParamDefValue(const long lMethodNum, const long lParamNum, BaseNativeAPI::tVariant *pvarParamDefValue);   
     virtual bool ADDIN_API HasRetVal(const long lMethodNum);
-    virtual bool ADDIN_API CallAsProc(const long lMethodNum, tVariant* paParams, const long lSizeArray);
-    virtual bool ADDIN_API CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray);
+    virtual bool ADDIN_API CallAsProc(const long lMethodNum, BaseNativeAPI::tVariant* paParams, const long lSizeArray);
+    virtual bool ADDIN_API CallAsFunc(const long lMethodNum, BaseNativeAPI::tVariant* pvarRetValue, BaseNativeAPI::tVariant* paParams, const long lSizeArray);
     virtual void ADDIN_API SetLocale(const WCHAR_T* loc);
 
 	SmartVariant getErrorDescription(SmartParameters);
 
-	CommonBase* clone() {
+	AbstractComponentObject* clone() {
 		return new DerivedComponent;
 	}
 
@@ -141,14 +138,12 @@ SmartComponentBase<DerivedComponent>::SmartComponentBase()
 	mMemoryManager(NULL),
 	mConnect(NULL)
 {
-	mComponentName = metadata().name;
-	
 	ComponentManager::getSingleton().registerObject((DerivedComponent*)this);
 }
 
 template <class DerivedComponent>
 bool SmartComponentBase<DerivedComponent>::Init(void* pConnection) { 
-	mConnect = (IAddInDefBase*)pConnection;
+	mConnect = (BaseNativeAPI::IAddInDefBase*)pConnection;
 	return mConnect != NULL;
 }
 
@@ -164,26 +159,28 @@ void SmartComponentBase<DerivedComponent>::Done() {
 
 template <class DerivedComponent>
 bool SmartComponentBase<DerivedComponent>::RegisterExtensionAs(WCHAR_T** wsExtensionName) { 
+	const std::wstring& name = metadata().name();
+	
 	if (!mMemoryManager) return false;
-	if (!mMemoryManager->AllocMemory((void**)wsExtensionName, (mComponentName.size() + 1) * sizeof(WCHAR_T))) return false;
+	if (!mMemoryManager->AllocMemory((void**)wsExtensionName, (name.size() + 1) * sizeof(WCHAR_T))) return false;
 
-	lstrcpyW(*wsExtensionName, mComponentName.c_str());
+	lstrcpyW(*wsExtensionName, name.c_str());
 
 	return true; 
 }
 
 template <class DerivedComponent>
 long SmartComponentBase<DerivedComponent>::GetNProps() { 
-	return metadata().properties.size();
+	return metadata().properties().size();
 }
 
 template <class DerivedComponent>
 long SmartComponentBase<DerivedComponent>::FindProp(const WCHAR_T* wsPropName) { 
-	auto& md = metadata();
+	auto& props = metadata().properties();
 	
-	for (auto i = 0; i < md.properties.size(); i++) {
-		if (_wcsicmp(md.properties[i].englishName.c_str(), wsPropName) == 0 ||
-			_wcsicmp(md.properties[i].localName.c_str(), wsPropName) == 0) return i;
+	for (auto i = 0; i < props.size(); i++) {
+		if (_wcsicmp(props[i].englishName.c_str(), wsPropName) == 0 ||
+			_wcsicmp(props[i].localName.c_str(), wsPropName) == 0) return i;
 	}
 
 	return -1;
@@ -191,11 +188,11 @@ long SmartComponentBase<DerivedComponent>::FindProp(const WCHAR_T* wsPropName) {
 
 template <class DerivedComponent>
 const WCHAR_T* SmartComponentBase<DerivedComponent>::GetPropName(long lPropNum, long lPropAlias) { 
-	auto& props = metadata().properties;
+	auto& props = metadata().properties();
 	
 	if ((unsigned long)lPropNum >= props.size()) return NULL;
 
-	wstring* name;
+	const std::wstring* name;
 
 	if (lPropAlias == 0)
 		name = &props[lPropNum].englishName;
@@ -213,8 +210,8 @@ const WCHAR_T* SmartComponentBase<DerivedComponent>::GetPropName(long lPropNum, 
 }
 
 template <class DerivedComponent>
-bool SmartComponentBase<DerivedComponent>::GetPropVal(const long lPropNum, tVariant* pvarPropVal) { 
-	auto& props = metadata().properties;
+bool SmartComponentBase<DerivedComponent>::GetPropVal(const long lPropNum, BaseNativeAPI::tVariant* pvarPropVal) { 
+	auto& props = metadata().properties();
 
 	if ((unsigned long)lPropNum >= props.size()) return false;
 
@@ -224,7 +221,7 @@ bool SmartComponentBase<DerivedComponent>::GetPropVal(const long lPropNum, tVari
 
 	try {
 
-		packVariant(property.getter(), pvarPropVal, mMemoryManager);
+		packVariant(CALL_POINTER_MEMBER((DerivedComponent*)this, property.getter)(), pvarPropVal, mMemoryManager);
 
 		error = false;
 
@@ -243,8 +240,8 @@ bool SmartComponentBase<DerivedComponent>::GetPropVal(const long lPropNum, tVari
 }
 
 template <class DerivedComponent>
-bool SmartComponentBase<DerivedComponent>::SetPropVal(const long lPropNum, tVariant *varPropVal) { 
-	auto& props = metadata().properties;
+bool SmartComponentBase<DerivedComponent>::SetPropVal(const long lPropNum, BaseNativeAPI::tVariant *varPropVal) { 
+	auto& props = metadata().properties();
 
 	if ((unsigned long)lPropNum >= props.size()) return false;
 
@@ -254,7 +251,7 @@ bool SmartComponentBase<DerivedComponent>::SetPropVal(const long lPropNum, tVari
 
 	try {
 
-		property.setter(extractVariant(varPropVal));
+		CALL_POINTER_MEMBER((DerivedComponent*)this, property.setter)(extractVariant(varPropVal));
 
 		error = false;
 
@@ -274,7 +271,7 @@ bool SmartComponentBase<DerivedComponent>::SetPropVal(const long lPropNum, tVari
 
 template <class DerivedComponent>
 bool SmartComponentBase<DerivedComponent>::IsPropReadable(const long lPropNum) { 
-	auto& props = metadata().properties;
+	auto& props = metadata().properties();
 
 	if ((unsigned long)lPropNum >= props.size()) return false;
 
@@ -283,7 +280,7 @@ bool SmartComponentBase<DerivedComponent>::IsPropReadable(const long lPropNum) {
 
 template <class DerivedComponent>
 bool SmartComponentBase<DerivedComponent>::IsPropWritable(const long lPropNum) {
-	auto& props = metadata().properties;
+	auto& props = metadata().properties();
 
 	if ((unsigned long)lPropNum >= props.size()) return false;
 
@@ -292,12 +289,12 @@ bool SmartComponentBase<DerivedComponent>::IsPropWritable(const long lPropNum) {
 
 template <class DerivedComponent>
 long SmartComponentBase<DerivedComponent>::GetNMethods() { 
-	return metadata().functions.size();
+	return metadata().functions().size();
 }
 
 template <class DerivedComponent>
 long SmartComponentBase<DerivedComponent>::FindMethod(const WCHAR_T* wsMethodName) { 
-	auto& funcs = metadata().functions;
+	auto& funcs = metadata().functions();
 
 	for (auto i = 0; i < funcs.size(); i++) {
 		if (_wcsicmp(funcs[i].englishName.c_str(), wsMethodName) == 0 ||
@@ -309,11 +306,11 @@ long SmartComponentBase<DerivedComponent>::FindMethod(const WCHAR_T* wsMethodNam
 
 template <class DerivedComponent>
 const WCHAR_T* SmartComponentBase<DerivedComponent>::GetMethodName(const long lMethodNum, const long lMethodAlias) { 
-	auto& funcs = metadata().functions;
+	auto& funcs = metadata().functions();
 
 	if ((unsigned long)lMethodNum >= funcs.size()) return NULL;
 
-	wstring* name;
+	const wstring* name;
 
 	if (lMethodAlias == 0)
 		name = &funcs[lMethodNum].englishName;
@@ -332,7 +329,7 @@ const WCHAR_T* SmartComponentBase<DerivedComponent>::GetMethodName(const long lM
 
 template <class DerivedComponent>
 long SmartComponentBase<DerivedComponent>::GetNParams(const long lMethodNum) { 
-	auto& funcs = metadata().functions;
+	auto& funcs = metadata().functions();
 
 	if ((unsigned long)lMethodNum >= funcs.size()) return 0;
 
@@ -340,26 +337,26 @@ long SmartComponentBase<DerivedComponent>::GetNParams(const long lMethodNum) {
 }
 
 template <class DerivedComponent>
-bool SmartComponentBase<DerivedComponent>::GetParamDefValue(const long lMethodNum, const long lParamNum, tVariant *pvarParamDefValue) { 
-	TV_VT(pvarParamDefValue)= VTYPE_EMPTY;
+bool SmartComponentBase<DerivedComponent>::GetParamDefValue(const long lMethodNum, const long lParamNum, BaseNativeAPI::tVariant *pvarParamDefValue) { 
+	TV_VT(pvarParamDefValue)= BaseNativeAPI::VTYPE_EMPTY;
 	return false;
 } 
 
 template <class DerivedComponent>
 bool SmartComponentBase<DerivedComponent>::HasRetVal(const long lMethodNum) { 
-	if ((unsigned long)lMethodNum >= metadata().functions.size()) return false;
+	if ((unsigned long)lMethodNum >= metadata().functions().size()) return false;
 
 	return true;
 }
 
 template <class DerivedComponent>
-bool SmartComponentBase<DerivedComponent>::CallAsProc(const long lMethodNum, tVariant* paParams, const long lSizeArray) { 
+bool SmartComponentBase<DerivedComponent>::CallAsProc(const long lMethodNum, BaseNativeAPI::tVariant* paParams, const long lSizeArray) { 
 	return false;
 }
 
 template <class DerivedComponent>
-bool SmartComponentBase<DerivedComponent>::CallAsFunc(const long lMethodNum, tVariant* pvarRetValue, tVariant* paParams, const long lSizeArray) { 
-	auto& funcs = metadata().functions;
+bool SmartComponentBase<DerivedComponent>::CallAsFunc(const long lMethodNum, BaseNativeAPI::tVariant* pvarRetValue, BaseNativeAPI::tVariant* paParams, const long lSizeArray) { 
+	auto& funcs = metadata().functions();
 
 	if ((unsigned long)lMethodNum >= funcs.size()) return false;
 	if (lSizeArray != funcs[lMethodNum].parametersCount) return false;
@@ -373,8 +370,7 @@ bool SmartComponentBase<DerivedComponent>::CallAsFunc(const long lMethodNum, tVa
 			smartParameters[i] = extractVariant(paParams + i);
 		}
 
-		//SmartVariant result = funcs[lMethodNum].method(smartParameters);
-		SmartVariant result = CALL_MEMBER_FN(*((DerivedComponent*)this), funcs[lMethodNum].method)(smartParameters);
+		SmartVariant result = CALL_POINTER_MEMBER((DerivedComponent*)this, funcs[lMethodNum].method)(smartParameters);
 		
 		for (int i = 0; i < lSizeArray; i++) {
 			packVariant(smartParameters[i], paParams + i, mMemoryManager);
@@ -405,13 +401,14 @@ void SmartComponentBase<DerivedComponent>::SetLocale(const WCHAR_T* loc) {
 
 template <class DerivedComponent>
 bool SmartComponentBase<DerivedComponent>::setMemManager(void* mem) {
-	mMemoryManager = (IMemoryManager*)mem;
+	mMemoryManager = (BaseNativeAPI::IMemoryManager*)mem;
 	return mMemoryManager != NULL;
 }
 
 template <class DerivedComponent>
 void SmartComponentBase<DerivedComponent>::message(wstring msg, long code /*= 0*/) {
-	mConnect->AddError(ADDIN_E_INFO, mComponentName.c_str(), msg.c_str(), code);
+	if (!mConnect) return;
+	mConnect->AddError(ADDIN_E_INFO, metadata().name().c_str(), msg.c_str(), code);
 }
 
 #endif

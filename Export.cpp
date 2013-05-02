@@ -1,11 +1,11 @@
 
 #include "ComponentManager.h"
 
-long GetClassObject(const WCHAR_T* wsName, IComponentBase** pInterface) {
+long GetClassObject(const WCHAR_T* wsName, BaseNativeAPI::IComponentBase** pInterface) {
     if(*pInterface) return 0;
 
 	try {
-		*pInterface = ComponentManager::getSingleton().createObject(wstring(wsName));
+		*pInterface = ComponentManager::getSingleton().createObject(std::wstring(wsName));
 	} catch (...) {
 		return 0;
 	}
@@ -13,7 +13,7 @@ long GetClassObject(const WCHAR_T* wsName, IComponentBase** pInterface) {
     return (long)*pInterface;
 }
 
-long DestroyObject(IComponentBase** pIntf) {
+long DestroyObject(BaseNativeAPI::IComponentBase** pIntf) {
    if(!*pIntf)
       return -1;
 

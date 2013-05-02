@@ -5,9 +5,7 @@
 #include <string>
 #include <exception>
 
-#include "ComponentBase.h"
-#include "AddInDefBase.h"
-#include "IMemoryManager.h"
+#include "BaseNativeAPI.h"
 
 #define ADD_TYPE_SUPPORT(type) \
 	SmartVariant(const type& value) : mContent(new ConcreteContent<type>(value)) {} \
@@ -96,8 +94,8 @@ private:
 	Content* mContent;
 };
 
-SmartVariant extractVariant(tVariant* var);
-void packVariant(SmartVariant& svar, tVariant* var, IMemoryManager*);
+SmartVariant extractVariant(BaseNativeAPI::tVariant* var);
+void packVariant(SmartVariant& svar, BaseNativeAPI::tVariant* var, BaseNativeAPI::IMemoryManager*);
 
 #endif // SmartVariant_h__
 

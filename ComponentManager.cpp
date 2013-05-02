@@ -1,7 +1,9 @@
 
 #include "ComponentManager.h"
 
-CommonBase* ComponentManager::createObject(std::wstring name) {
+#include "SmartComponentBase.h"
+
+AbstractComponentObject* ComponentManager::createObject(std::wstring name) {
 	return mObjects.at(name)->clone();
 }
 

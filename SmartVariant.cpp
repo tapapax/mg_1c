@@ -1,35 +1,35 @@
 
 #include "SmartVariant.h"
 
-SmartVariant extractVariant(tVariant* var) {
+SmartVariant extractVariant(BaseNativeAPI::tVariant* var) {
 	SmartVariant result;
 
-	if (var->vt == VTYPE_BOOL) result = var->bVal;
-	else if (var->vt == VTYPE_I2 || var->vt == VTYPE_I4 || var->vt == VTYPE_ERROR || var->vt == VTYPE_UI1) result = (long)var->lVal;
-	else if (var->vt == VTYPE_R4 || var->vt == VTYPE_R8 /*|| var->vt == VTYPE_CY*/) result = var->dblVal;
-	else if (var->vt == VTYPE_PWSTR) result = std::wstring(var->pwstrVal, var->wstrLen);
-	else if (var->vt == VTYPE_EMPTY) result = Undefined();
+	if (var->vt == BaseNativeAPI::VTYPE_BOOL) result = var->bVal;
+	else if (var->vt == BaseNativeAPI::VTYPE_I2 || var->vt == BaseNativeAPI::VTYPE_I4 || var->vt == BaseNativeAPI::VTYPE_ERROR || var->vt == BaseNativeAPI::VTYPE_UI1) result = (long)var->lVal;
+	else if (var->vt == BaseNativeAPI::VTYPE_R4 || var->vt == BaseNativeAPI::VTYPE_R8 /*|| var->vt == VTYPE_CY*/) result = var->dblVal;
+	else if (var->vt == BaseNativeAPI::VTYPE_PWSTR) result = std::wstring(var->pwstrVal, var->wstrLen);
+	else if (var->vt == BaseNativeAPI::VTYPE_EMPTY) result = Undefined();
 	else throw std::runtime_error("<unsupported variant type>");
 
 	return result;
 }
 
-void putDoubleInVariant(const double value, tVariant* var) {
-	TV_VT(var) = VTYPE_R8;
+void putDoubleInVariant(const double value, BaseNativeAPI::tVariant* var) {
+	TV_VT(var) = BaseNativeAPI::VTYPE_R8;
 	TV_R8(var) = value;
 }
 
-void putLongInVariant(const long value, tVariant* var) {
-	TV_VT(var) = VTYPE_I4;
+void putLongInVariant(const long value, BaseNativeAPI::tVariant* var) {
+	TV_VT(var) = BaseNativeAPI::VTYPE_I4;
 	TV_I4(var) = value;
 }
 
-void putBoolInVariant(const bool value, tVariant* var) {
-	TV_VT(var) = VTYPE_BOOL;
+void putBoolInVariant(const bool value, BaseNativeAPI::tVariant* var) {
+	TV_VT(var) = BaseNativeAPI::VTYPE_BOOL;
 	TV_BOOL(var) = value;
 }
 
-void putWStringInVariant(const std::wstring& str, tVariant* var, IMemoryManager* memoryManager) {
+void putWStringInVariant(const std::wstring& str, BaseNativeAPI::tVariant* var, BaseNativeAPI::IMemoryManager* memoryManager) {
 	wchar_t* ptr;
 	auto size = (str.size() + 1) * sizeof(wchar_t);
 
@@ -39,12 +39,12 @@ void putWStringInVariant(const std::wstring& str, tVariant* var, IMemoryManager*
 
 	memcpy(ptr, str.c_str(), size);
 
-	TV_VT(var) = VTYPE_PWSTR;
+	TV_VT(var) = BaseNativeAPI::VTYPE_PWSTR;
 	TV_WSTR(var) = ptr;
 	var->wstrLen = str.size();
 }
 
-void putStringInVariant(const std::string& str, tVariant* var, IMemoryManager* memoryManager) {
+void putStringInVariant(const std::string& str, BaseNativeAPI::tVariant* var, BaseNativeAPI::IMemoryManager* memoryManager) {
 	char* ptr;
 	auto size = (str.size() + 1) * sizeof(char);
 
@@ -54,17 +54,17 @@ void putStringInVariant(const std::string& str, tVariant* var, IMemoryManager* m
 
 	memcpy(ptr, str.c_str(), size);
 
-	TV_VT(var) = VTYPE_PSTR;
+	TV_VT(var) = BaseNativeAPI::VTYPE_PSTR;
 	TV_STR(var) = ptr;
 	var->strLen = str.size();
 }
 
-void putBinaryInVariant(const BinaryData& blob, tVariant* var, IMemoryManager* memoryManager){
+void putBinaryInVariant(const BinaryData& blob, BaseNativeAPI::tVariant* var, BaseNativeAPI::IMemoryManager* memoryManager){
 	putStringInVariant(blob.getData(), var, memoryManager);
-	TV_VT(var) = VTYPE_BLOB;
+	TV_VT(var) = BaseNativeAPI::VTYPE_BLOB;
 }
 
-void packVariant(SmartVariant& svar, tVariant* var, IMemoryManager* memoryManager) {
+void packVariant(SmartVariant& svar, BaseNativeAPI::tVariant* var, BaseNativeAPI::IMemoryManager* memoryManager) {
 	if (svar.type() == typeid(std::wstring))
 		putWStringInVariant(svar.getValue<std::wstring>(), var, memoryManager);
 	else if (svar.type() == typeid(std::string))
@@ -78,7 +78,7 @@ void packVariant(SmartVariant& svar, tVariant* var, IMemoryManager* memoryManage
 	else if (svar.type() == typeid(long))
 		putLongInVariant(svar.getValue<long>(), var);
 	else if (svar.type() == typeid(Undefined))
-		var->vt = VTYPE_EMPTY;
+		var->vt = BaseNativeAPI::VTYPE_EMPTY;
 	else throw std::runtime_error("<cannot cast variable>");
 }
 

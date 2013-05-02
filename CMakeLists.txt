@@ -16,7 +16,7 @@ link_directories(${Poco_LIBRARY_DIR})
 
 include_directories(include)
 
-set(SRCS dllmain.cpp Export.cpp MessageGetter.cpp SmartComponentBase.cpp stdafx.cpp Component.def)
+set(SRCS dllmain.cpp Export.cpp MessageGetter.cpp ComponentManager.cpp SmartVariant.cpp stdafx.cpp Component.def)
 
 add_library(mg_1c SHARED ${SRCS})
 target_link_libraries(mg_1c ${Poco_LIBRARIES})
