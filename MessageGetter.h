@@ -11,7 +11,7 @@ using std::wstring;
 
 class CMessageGetter : public Addin1C::AddinObject<CMessageGetter> {
 public:
-	Addin1C::Variant getMessage(Addin1C::VariantParameters);
+	Addin1C::Variant getMessage(Addin1C::VariantParameters&);
 
 	static Metadata getMetadata() {
 		Metadata md(L"MessageGetter");

@@ -95,7 +95,7 @@ string parseUIDLResponseToFindMessage(string& response, const wstring& messageID
 	return response.substr(lineBegin, position - lineBegin);
 }
 
-Addin1C::Variant CMessageGetter::getMessage(Addin1C::VariantParameters parameters) {
+Addin1C::Variant CMessageGetter::getMessage(Addin1C::VariantParameters& parameters) {
 	wstring server = parameters[0];
 	wstring login = parameters[1];
 	wstring password = parameters[2];
